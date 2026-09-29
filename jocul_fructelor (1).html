@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Jocul fructelor</title>
+<style>
+body{font-family:Arial,sans-serif;background:#fffaf0;color:#333;text-align:center;margin:0;padding:24px}.wrap{max-width:900px;margin:auto}h1{font-size:32px;margin:8px}.sub{font-size:20px;margin:10px 0 18px}.level{color:#666;margin-bottom:10px}
+#sequence,#choices,#slots{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:18px 0}.fruit{font-size:60px}.card,.slot{width:125px;height:105px;border:3px solid #ddd;border-radius:18px;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box}.card{cursor:grab}.slot{border-style:dashed;background:#fff}
+button{font-size:18px;padding:12px 22px;border:0;border-radius:12px;cursor:pointer;background:#ffd166;margin:6px}#message{font-size:21px;font-weight:bold;min-height:34px;margin:16px}.hidden{display:none}.feedback{font-size:48px;margin:8px}.feedbackText{font-size:22px;font-weight:bold}.retry{margin-top:10px;font-size:18px}
+@media(max-width:600px){.card,.slot{width:90px;height:90px}.fruit{font-size:48px}h1{font-size:26px}}
+</style></head>
+<body><div class="wrap">
+<h1>🍎 Jocul fructelor 🍐</h1><div class="sub" id="instruction">Privește cu atenție șirul de fructe!</div><div class="level" id="level"></div>
+<div id="sequence"></div>
+<div id="game" class="hidden"><p>Trage fructele în ordinea în care le-ai văzut:</p><div id="slots"></div><div id="choices"></div></div>
+<div id="message"></div><div id="feedback" class="hidden"></div>
+<button id="start">Începe jocul</button><button id="check" class="hidden">Verifică</button>
+</div>
+<script>
+const fruits=[['🍎','măr'],['🍐','pară'],['🍓','căpșună'],['🍊','portocală'],['🍌','banană'],['🍉','pepene']];
+let level=3,current=[],answer=[],dragged=null;
+const $=id=>document.getElementById(id);
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function showSequence(seconds,after){
+ $('sequence').innerHTML=current.map(f=>'<span class="fruit" title="'+f[1]+'">'+f[0]+'</span>').join('');
+ setTimeout(()=>{$('sequence').innerHTML='';after()},seconds*1000);
+}
+function startGame(){
+ $('message').textContent='';$('feedback').classList.add('hidden');$('game').classList.add('hidden');$('check').classList.add('hidden');$('start').classList.add('hidden');
+ $('instruction').textContent='Privește cu atenție! Memorează ordinea.';$('level').textContent='Nivel: '+level+' fructe';
+ current=shuffle(fruits).slice(0,level);answer=Array(level).fill(null);
+ showSequence(4,()=>{ $('game').classList.remove('hidden');$('check').classList.remove('hidden');$('instruction').textContent='Acum reconstruiește șirul!';render(); });
+}
+function render(){
+ $('slots').innerHTML=answer.map((f,i)=>'<div class="slot" data-slot="'+i+'">'+(f?f[0]:'?')+'</div>').join('');
+ $('choices').innerHTML=shuffle(current).map(f=>'<div class="card" draggable="true" data-name="'+f[1]+'"><span class="fruit">'+f[0]+'</span></div>').join('');
+ document.querySelectorAll('.card').forEach(card=>{card.addEventListener('dragstart',e=>dragged=e.currentTarget.dataset.name);card.addEventListener('click',()=>place(card.dataset.name));});
+ document.querySelectorAll('.slot').forEach(slot=>{slot.addEventListener('dragover',e=>e.preventDefault());slot.addEventListener('drop',e=>{e.preventDefault();place(dragged,Number(slot.dataset.slot));});});
+}
+function place(name,pos){if(!name)return;const f=current.find(x=>x[1]===name);if(!f)return;if(pos===undefined)pos=answer.findIndex(x=>!x);if(pos<0)return;answer[pos]=f;$('message').textContent='';$('feedback').classList.add('hidden');render();}
+$('check').onclick=()=>{
+ if(answer.some(f=>!f)){ $('message').textContent='Așază toate fructele mai întâi.';return; }
+ const correct=answer.every((f,i)=>f[1]===current[i][1]);
+ if(correct){$('message').textContent='🌟 Bravo! Ai reușit!';$('feedback').classList.remove('hidden');$('feedback').innerHTML='<div class="feedback">🎉</div><div class="feedbackText">Ai memorat foarte bine!</div>';$('check').classList.add('hidden');$('start').classList.remove('hidden');$('start').textContent=level<5?'Următorul nivel':'Joacă din nou';if(level<5)level++;}
+ else{
+  $('message').textContent='Mai încearcă! Privește din nou ordinea.';$('feedback').classList.remove('hidden');$('feedback').innerHTML='<div class="feedback">🤔</div><div class="feedbackText">Privește din nou șirul!</div>';
+  $('game').classList.add('hidden');$('check').classList.add('hidden');answer=Array(level).fill(null);
+  setTimeout(()=>{ $('feedback').classList.add('hidden');$('instruction').textContent='Memorează din nou ordinea.';showSequence(4,()=>{$('game').classList.remove('hidden');$('check').classList.remove('hidden');$('instruction').textContent='Acum reconstruiește șirul!';render();}); },1200);
+ }
+};
+$('start').onclick=startGame;
+</script></body></html>
