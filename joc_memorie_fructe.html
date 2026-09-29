@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joc de memorie - Fructele</title>
+<style>
+body{font-family:Arial,sans-serif;background:#fffaf0;color:#333;text-align:center;margin:0;padding:24px}.wrap{max-width:900px;margin:auto}h1{font-size:32px;margin:8px}.sub{font-size:20px;margin:10px 0 18px}.level{color:#666;font-size:18px}#sequence,#choices,#slots{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:18px 0}.fruit{font-size:60px}.card,.slot{width:125px;height:105px;border:3px solid #ddd;border-radius:18px;background:white;display:flex;align-items:center;justify-content:center;box-sizing:border-box}.card{cursor:grab}.slot{border-style:dashed;background:#fff}.card:active{cursor:grabbing}button{font-size:18px;padding:12px 22px;border:0;border-radius:12px;cursor:pointer;background:#ffd166;margin:6px}#message{font-size:21px;font-weight:bold;min-height:36px;margin:16px}.feedback{font-size:48px;min-height:60px}.hidden{display:none}#game{margin-top:8px}.correct{font-size:26px}.wrong{font-size:26px}@media(max-width:600px){.card,.slot{width:90px;height:90px}.fruit{font-size:48px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🍎 Joc de memorie cu fructe 🍐</h1>
+<div class="sub" id="instruction">Privește cu atenție și memorează ordinea!</div>
+<div class="level" id="level"></div>
+<div id="sequence"></div>
+<div id="game" class="hidden">
+<p>Trage fructele în ordinea în care le-ai văzut:</p>
+<div id="slots"></div>
+<div id="choices"></div>
+</div>
+<div id="feedback" class="feedback"></div>
+<div id="message"></div>
+<button id="start">Începe jocul</button>
+<button id="check" class="hidden">Verifică</button>
+</div>
+<script>
+const fruits=[['🍎','măr'],['🍐','pară'],['🍓','căpșună'],['🍊','portocală'],['🍌','banană'],['🍉','pepene']];
+let level=3,current=[],answer=[],dragged=null,showTimer=null;
+const $=id=>document.getElementById(id);
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function showSequence(message='Privește cu atenție și memorează ordinea!'){
+ clearTimeout(showTimer);
+ $('game').classList.add('hidden');
+ $('check').classList.add('hidden');
+ $('sequence').innerHTML=current.map(f=>'<span class="fruit" title="'+f[1]+'">'+f[0]+'</span>').join('');
+ $('instruction').textContent=message;
+ showTimer=setTimeout(hideSequence,4000);
+}
+function hideSequence(){
+ $('sequence').innerHTML='';
+ $('game').classList.remove('hidden');
+ $('check').classList.remove('hidden');
+ $('instruction').textContent='Acum reconstruiește șirul!';
+ render();
+}
+function startGame(){
+ clearTimeout(showTimer);
+ $('message').textContent=''; $('feedback').textContent=''; $('game').classList.add('hidden'); $('check').classList.add('hidden'); $('start').classList.add('hidden');
+ $('level').textContent='Nivel: '+level+' fructe';
+ current=shuffle(fruits).slice(0,level); answer=Array(level).fill(null);
+ showSequence();
+}
+function render(){
+ $('slots').innerHTML=answer.map((f,i)=>'<div class="slot" data-slot="'+i+'">'+(f?f[0]:'?')+'</div>').join('');
+ $('choices').innerHTML=shuffle(current).map(f=>'<div class="card" draggable="true" data-name="'+f[1]+'"><span class="fruit">'+f[0]+'</span></div>').join('');
+ document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('dragstart',e=>dragged=e.currentTarget.dataset.name);
+  card.addEventListener('click',()=>place(card.dataset.name));
+ });
+ document.querySelectorAll('.slot').forEach(slot=>{
+  slot.addEventListener('dragover',e=>e.preventDefault());
+  slot.addEventListener('drop',e=>{e.preventDefault();place(dragged,Number(slot.dataset.slot));dragged=null;});
+ });
+}
+function place(name,pos){
+ if(!name)return;
+ const f=current.find(x=>x[1]===name); if(!f)return;
+ if(pos===undefined)pos=answer.findIndex(x=>!x);
+ if(pos<0)return;
+ answer[pos]=f;
+ $('feedback').textContent=''; $('message').textContent='';
+ render();
+}
+$('check').onclick=()=>{
+ if(answer.some(f=>!f)){
+  $('feedback').textContent='';
+  $('message').textContent='Completează toate locurile!';
+  return;
+ }
+ const correct=answer.every((f,i)=>f[1]===current[i][1]);
+ if(correct){
+  $('feedback').textContent='🎉';
+  $('message').textContent='Bravo! Ai reușit!';
+  $('check').classList.add('hidden'); $('start').classList.remove('hidden');
+  $('start').textContent=level<5?'Următorul nivel':'Joacă din nou';
+  if(level<5)level++;
+ }else{
+  $('feedback').textContent='🤔';
+  $('message').textContent='Mai încearcă! Privește din nou ordinea.';
+  answer=Array(level).fill(null);
+  showSequence('Memorează din nou ordinea!');
+ }
+};
+$('start').onclick=startGame;
+</script>
+</body>
+</html>
